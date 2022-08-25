@@ -85,7 +85,7 @@ class WebhookRegistry:
 
         if self._webhook_url != subscriber_config["webhook_url"]:
             logger.debug(f"Webhook url updated from {subscriber_config['webhook_url']} to {self._webhook_url}")
-            subscriber_config.webhook_url = self._webhook_url
+            subscriber_config["webhook_url"] = self._webhook_url
             updated = True
 
         return updated
