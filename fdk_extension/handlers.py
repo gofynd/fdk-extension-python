@@ -116,7 +116,7 @@ async def auth_handler(request: Request):
             session.scope = extension.scopes
             session.state = request.conn_info.ctx.fdk_session.state
             session.extension_id = extension.api_key
-            offline_token_response["access_token_valid"] = platform_config.oauthClient.token_expires_at
+            offline_token_response["access_token_validity"] = platform_config.oauthClient.token_expires_at
             offline_token_response["access_mode"] = OFFLINE_ACCESS_MODE
             session.update_token(offline_token_response)
 
