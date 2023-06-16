@@ -3,7 +3,7 @@ import sys
 
 import aioredis
 from sanic import Sanic, Blueprint
-from sanic import response
+from sanic import response, request
 
 import logging
 
@@ -24,6 +24,7 @@ redis_connection = aioredis.from_url("redis://localhost")
 base_url = "http://0.0.0.0:8000"
 
 
+# webhook handlers
 async def handle_coupon_edit(event_name, payload, company_id, application_id):
     logging.debug(f"Event received for {company_id} and {application_id}")
     logging.debug(payload)
@@ -44,22 +45,20 @@ async def handle_location_event(event_name, payload, company_id):
     logging.debug(f"Event received for {company_id} and event_category {payload['event']['category']}")
     logging.debug(payload)
 
-
+# REMOVE: 
 async def handle_ext_install(payload, company_id):
     logging.debug(f"Event received for {company_id}")
     logging.debug(payload)
 
 
 fdk_extension_client = setup_fdk({
-    "api_key": "6220daa4a5414621b975a41f",
-    "api_secret": "EbeGBRC~Fthv5om",
-    "base_url": base_url, # this is optional
-    "scopes": ["company/product"], # this is optional
+    "api_key": "<api_key>",
+    "api_secret": "<api_secret>",
     "callbacks": extension_handler,
-    "storage": RedisStorage(redis_connection),
+    "storage": RedisStorage(redis_connection, "example_app"),
     "access_mode": "offline",
     "debug": True,
-    "cluster": "https://api.fyndx0.de",  # this is optional by default it points to prod.
+    "cluster": "https://api.fynd.com",
     "webhook_config": {
         "api_path": "/webhook",
         "notification_email": "test2@abc.com",  # required
@@ -129,14 +128,23 @@ async def disable_sales_channel_webhook_handler(request, application_id):
         return response.json({"error_message": str(e), "success": False}, 500)
 
 
+# Adding `fdk_route` to handle extension install/auth
 app.blueprint(fdk_extension_client.fdk_route)
 
-platform_bp = Blueprint("platform blueprint")
+
+# platform blueprints
+platform_bp = Blueprint("platform_blueprint")
 platform_bp.add_route(test_route_handler, "/test/routes")
+platform_bp_group = Blueprint.group(platform_bp)
 
-application_bp = Blueprint("application blueprint")
+
+# application blueprints
+application_bp = Blueprint("application_blueprint")
 application_bp.add_route(test_route_handler, "/1234")
+application_bp_group = Blueprint.group(application_bp)
 
+
+# webhook handler
 app.add_route(webhook_handler, "/webhook", methods=["POST"])
 
 platform_bp.add_route(enable_sales_channel_webhook_handler,
@@ -146,12 +154,29 @@ platform_bp.add_route(disable_sales_channel_webhook_handler,
                                                       "/webhook/application/<application_id>/unsubscribe",
                                                       methods=["POST"])
 
-fdk_extension_client.platform_api_routes.append(platform_bp)
-fdk_extension_client.application_proxy_routes.append(application_bp)
+# registering blueprints
+fdk_extension_client.platform_api_routes.append(platform_bp_group)
+fdk_extension_client.application_proxy_routes.append(application_bp_group)
+
 
 app.blueprint(fdk_extension_client.platform_api_routes)
 app.blueprint(fdk_extension_client.application_proxy_routes)
 
+
+# Example of How to use platform client in `offline` access mode
+async def client_handler(request: request.Request):
+    
+    try:
+        client = await fdk_extension_client.get_platform_client(11197)
+        res = await client.application("604cc4bac3f4cce0cd7e93ef").theme.getAppliedTheme()
+        return response.json(body={"message": "OK"}, status=200)
+    except Exception as e:
+        print(e)
+        return response.json(body={"message": "Error"}, status=400)
+    
+app.add_route(client_handler, "/client", methods=["GET"])
+
+
 # debug logs enabled with debug = True
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=8000, debug=True)
+    app.run(host="127.0.0.1", port=8000, debug=True)
