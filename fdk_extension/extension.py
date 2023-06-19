@@ -141,7 +141,7 @@ class Extension:
                 logger.debug(f"Access token renewed for comapny {company_id} with response {renew_token_res}")
 
         platform_client = PlatformClient(platform_config)
-        platform_client.setExtraHeaders({
+        await platform_client.setExtraHeaders({
             'x-ext-lib-version': f"py/{__version__}"
         })
         return platform_client
