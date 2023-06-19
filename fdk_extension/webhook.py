@@ -88,7 +88,7 @@ class WebhookRegistry:
 
 
     def __association_criteria(self, application_id_list: list) -> str:
-        if self._config["subscribed_saleschannel"] == "specific":
+        if self._config.get("subscribed_saleschannel") == "specific":
             return ASSOCIATION_CRITERIA["SPECIFIC"] if application_id_list else ASSOCIATION_CRITERIA["EMPTY"]
         return ASSOCIATION_CRITERIA["ALL"]
 
@@ -217,7 +217,7 @@ class WebhookRegistry:
         if not self.is_initialized:
             raise FdkInvalidWebhookConfig("Webhook registry not initialized")
 
-        if self._config["subscribed_saleschannel"] != "specific":
+        if self._config.get("subscribed_saleschannel") != "specific":
             raise FdkWebhookRegistrationError("'subscribed_saleschannel' is not set to 'specific' in webhook config")
         
         try:
@@ -250,7 +250,7 @@ class WebhookRegistry:
         if not self.is_initialized:
             raise FdkInvalidWebhookConfig("Webhook registry not initialized")
         
-        if self._config["subscribed_saleschannel"] != "specific":
+        if self._config.get("subscribed_saleschannel") != "specific":
             raise FdkWebhookRegistrationError("`subscribed_saleschannel` is not set to `specific` in webhook config")
         try:
             subscriber_config = await self.get_subscribe_config(platform_client=platform_client)
