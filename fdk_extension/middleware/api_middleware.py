@@ -19,6 +19,7 @@ async def application_proxy_on_request(request: Request) -> None:
         request.conn_info.ctx.application_config = ApplicationConfig({
             "applicationID": request.conn_info.ctx.application._id,
             "applicationToken": request.conn_info.ctx.application.token,
+            "domain": extension.cluster
         })
         request.conn_info.ctx.application_client = ApplicationClient(request.conn_info.ctx.application_config)
 

@@ -88,7 +88,7 @@ class WebhookRegistry:
 
 
     def __association_criteria(self, application_id_list: list) -> str:
-        if self._config["subscribed_saleschannel"] == "specific":
+        if self._config.get("subscribed_saleschannel") == "specific":
             return ASSOCIATION_CRITERIA["SPECIFIC"] if application_id_list else ASSOCIATION_CRITERIA["EMPTY"]
         return ASSOCIATION_CRITERIA["ALL"]
 
@@ -137,7 +137,7 @@ class WebhookRegistry:
                 "name": self._fdk_config["api_key"],
                 "webhook_url": self.__webhook_url,
                 "association": {
-                    "company_id": platform_client._conf.companyId,
+                    "company_id": platform_client.config.companyId,
                     "application_id": [],
                     "criteria": self.__association_criteria([])
                 },
@@ -153,7 +153,7 @@ class WebhookRegistry:
             if enable_webhooks is not None:
                 subscriber_config["status"] = "active" if enable_webhooks else "inactive"
         else:
-            logger.debug(f"Webhook config on platform side for company id {platform_client._conf.companyId}: {ujson.dumps(subscriber_config)}")
+            logger.debug(f"Webhook config on platform side for company id {platform_client.config.companyId}: {ujson.dumps(subscriber_config)}")
 
             auth_meta = subscriber_config["auth_meta"]
             event_configs = subscriber_config["event_configs"]
@@ -191,7 +191,7 @@ class WebhookRegistry:
                     for event_name in event_config["events_map"]:
                         event_map[event_config["events_map"][event_name]] = event_name
                     subscriber_config["event_id"] = [event_map[event_id] for event_id in subscriber_config["event_id"]]
-                    logger.debug(f"Webhook config registered for company: {platform_client._conf.companyId}, config: {ujson.dumps(subscriber_config)}")
+                    logger.debug(f"Webhook config registered for company: {platform_client.config.companyId}, config: {ujson.dumps(subscriber_config)}")
                 
             else:
                 event_diff = [each_event_id for each_event_id in subscriber_config["event_id"]
@@ -207,7 +207,7 @@ class WebhookRegistry:
                         for event_name in event_config["events_map"]:
                             event_map[event_config["events_map"][event_name]] = event_name
                         subscriber_config["event_id"] = [event_map[event_id] for event_id in subscriber_config["event_id"]]
-                        logger.debug(f"Webhook config updated for company: {platform_client._conf.companyId}, config: {ujson.dumps(subscriber_config)}")
+                        logger.debug(f"Webhook config updated for company: {platform_client.config.companyId}, config: {ujson.dumps(subscriber_config)}")
 
         except Exception as e:
             raise FdkWebhookRegistrationError(f"Failed to sync webhook events. Reason: {str(e)}")
@@ -217,7 +217,7 @@ class WebhookRegistry:
         if not self.is_initialized:
             raise FdkInvalidWebhookConfig("Webhook registry not initialized")
 
-        if self._config["subscribed_saleschannel"] != "specific":
+        if self._config.get("subscribed_saleschannel") != "specific":
             raise FdkWebhookRegistrationError("'subscribed_saleschannel' is not set to 'specific' in webhook config")
         
         try:
@@ -250,7 +250,7 @@ class WebhookRegistry:
         if not self.is_initialized:
             raise FdkInvalidWebhookConfig("Webhook registry not initialized")
         
-        if self._config["subscribed_saleschannel"] != "specific":
+        if self._config.get("subscribed_saleschannel") != "specific":
             raise FdkWebhookRegistrationError("`subscribed_saleschannel` is not set to `specific` in webhook config")
         try:
             subscriber_config = await self.get_subscribe_config(platform_client=platform_client)
