@@ -2,17 +2,18 @@ import os
 import sys
 
 import aioredis
-from sanic import Sanic, Blueprint
-from sanic import response, request
+from sanic import Sanic, Blueprint, request, response
 
 import logging
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+from fdk_client.platform import PlatformClient
 from fdk_extension import setup_fdk
-from examples.extension_handlers import extension_handler
 from fdk_extension.utilities.logger import get_logger
 from fdk_extension.storage.redis_storage import RedisStorage
+
+from examples.extension_handlers import extension_handler
 
 logger = get_logger()
 
@@ -20,8 +21,6 @@ logger = get_logger()
 app = Sanic("test")
 
 redis_connection = aioredis.from_url("redis://localhost")
-
-base_url = "http://0.0.0.0:8000"
 
 
 # webhook handlers
@@ -45,15 +44,10 @@ async def handle_location_event(event_name, payload, company_id):
     logging.debug(f"Event received for {company_id} and event_category {payload['event']['category']}")
     logging.debug(payload)
 
-# REMOVE: 
-async def handle_ext_install(payload, company_id):
-    logging.debug(f"Event received for {company_id}")
-    logging.debug(payload)
-
 
 fdk_extension_client = setup_fdk({
-    "api_key": "<api_key>",
-    "api_secret": "<api_secret>",
+    "api_key": "<API_KEY>",
+    "api_secret": "<API_SECRET>",
     "callbacks": extension_handler,
     "storage": RedisStorage(redis_connection, "example_app"),
     "access_mode": "offline",
@@ -164,17 +158,21 @@ app.blueprint(fdk_extension_client.application_proxy_routes)
 
 
 # Example of How to use platform client in `offline` access mode
+@app.post("/client")
 async def client_handler(request: request.Request):
-    
     try:
-        client = await fdk_extension_client.get_platform_client(11197)
-        res = await client.application("604cc4bac3f4cce0cd7e93ef").theme.getAppliedTheme()
+        client: PlatformClient = await fdk_extension_client.get_platform_client("<COMPANY_ID>")
+        res = await client.application("<APPLICATION_ID>").theme.getAppliedTheme()
         return response.json(body={"message": "OK"}, status=200)
     except Exception as e:
         print(e)
         return response.json(body={"message": "Error"}, status=400)
     
-app.add_route(client_handler, "/client", methods=["GET"])
+
+# home page
+@app.get("company/<company_id>")
+async def home_page_handler(request: request.Request, company_id):
+    return response.html(f"<h1>Extension launched on Company ID: {company_id}</h1>")
 
 
 # debug logs enabled with debug = True
