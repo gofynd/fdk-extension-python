@@ -162,7 +162,7 @@ Other way to update webhook config manually for a company is to call `sync_event
 Custom storage classes expand data storage options beyond default choices like Redis and in-memory storage. You would required to create a custom storage class by extending the base storage class provided by fdk extension javascript library and implementing required methods as per your chosen database.
 
 ```python
-from .base_storage import BaseStorage
+from fdk_extension.storage.base_storage import BaseStorage
 
 class MyCustomStorage(BaseStorage):
     def __init__(self, client: client, prefix_key: str=""):
