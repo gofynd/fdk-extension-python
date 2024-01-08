@@ -171,9 +171,30 @@ class MyCustomStorage(BaseStorage):
 
     async def get(self, key):
         return await self.client.get(self.prefix_key + key)
-    .
-    .
-    .
+    async def set(self, key, value):
+        #Implementation of a set method
+        pass
+
+    async def delete(self, key):
+        #Implementation of a delete method
+        pass
+
+    async def setex(self, key, ttl, value):
+        #Implementation of a setex method
+        pass
+
+    async def hget(self, key, hashKey):
+        #Implementation of a hget method
+        pass
+
+    async def hset(self, key, hashKey, value):
+        #Implementation of a hset method
+        pass
+
+    async def hgetall(self, key):
+        #Implementation of a hgetall method
+        pass
+
     # All of the below methods need to be implemented as per your chosen databse
 ```
 
