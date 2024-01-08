@@ -159,7 +159,7 @@ After webhook config is passed to setupFdk whenever extension is launched to any
 Other way to update webhook config manually for a company is to call `sync_events` function of webhookRegistery.
 
 #### How to create custom storage class?
-Custom storage classes expand data storage options beyond default choices like Redis and in-memory storage. You would required to create a custom storage class by extending the base storage class provided by fdk extension javascript library and implementing required methods as per your chosen database.
+Custom storage classes expand data storage options beyond default choices like Redis and in-memory storage. You would required to create a custom storage class by extending the base storage class provided by fdk extension python library and implementing required methods as per your chosen database.
 
 ```python
 from fdk_extension.storage.base_storage import BaseStorage
