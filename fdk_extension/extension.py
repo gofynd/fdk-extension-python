@@ -131,14 +131,14 @@ class Extension:
         platform_config.oauthClient.token_expires_at = session.access_token_validity
 
         if (session.access_token_validity and session.refresh_token):
-            ac_nr_expired = (session.access_token_validity - get_current_timestamp() // 1000) <= 120
+            ac_nr_expired = ((session.access_token_validity - get_current_timestamp()) // 1000) <= 120
             if ac_nr_expired:
                 logger.debug(f"Renewing access token for company {company_id} with platform config {json.dumps(safe_stringify(platform_config))}")
                 renew_token_res = await platform_config.oauthClient.renewAccessToken(session.access_mode == OFFLINE_ACCESS_MODE)
                 renew_token_res["access_token_validity"] = platform_config.oauthClient.token_expires_at
                 session.update_token(renew_token_res)
                 await SessionStorage.save_session(session)
-                logger.debug(f"Access token renewed for comapny {company_id} with response {renew_token_res}")
+                logger.debug(f"Access token renewed for company {company_id} with response {renew_token_res}")
 
         platform_client = PlatformClient(platform_config)
         platform_client.setExtraHeaders({
