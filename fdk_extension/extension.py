@@ -4,6 +4,7 @@ import base64, json
 
 from fdk_client.platform.PlatformClient import PlatformClient
 from fdk_client.platform.PlatformConfig import PlatformConfig
+from fdk_client.partner import PartnerClient, PartnerConfig
 from fdk_client.application.ApplicationClient import ApplicationClient
 from fdk_client.common.utils import get_headers_with_signature
 from fdk_client.common.aiohttp_helper import AiohttpHelper
@@ -102,6 +103,9 @@ class Extension:
 
     def get_auth_callback(self) -> str:
         return urljoin(self.base_url, "/fp/auth")
+    
+    def get_adm_auth_callback(self) -> str:
+        return urljoin(self.base_url, "/adm/auth")
 
     def is_online_access_mode(self) -> bool:
         return self.access_mode == ONLINE_ACCESS_MODE
@@ -146,6 +150,45 @@ class Extension:
         })
         return platform_client
 
+    def get_partner_config(self, organization_id) -> PartnerConfig:
+        if (not self.is_initialized()):
+            raise FdkInvalidConfig("Extension not initialized due to invalid data")
+
+        partner_config = PartnerConfig({
+            "organizationId": organization_id,
+            "domain": self.cluster,
+            "apiKey": self.api_key,
+            "apiSecret": self.api_secret,
+            "useAutoRenewTimer": False,
+            "logLevel": "DEBUG"
+        })
+        return partner_config
+    
+    async def get_partner_client(self, organization_id, session: Session) -> PartnerClient:
+        if (not self.is_initialized()):
+            raise FdkInvalidConfig("Extension not initialized due to invalid data")
+
+        from .session.session_storage import SessionStorage
+
+        partner_config = self.get_partner_config(organization_id)
+        partner_config.oauthClient.setTokenFromSession(session)
+        partner_config.oauthClient.token_expires_at = session.access_token_validity
+
+        if (session.access_token_validity and session.refresh_token):
+            ac_nr_expired = ((session.access_token_validity - get_current_timestamp()) // 1000) <= 120
+            if ac_nr_expired:
+                logger.debug(f"Renewing access token for organization {organization_id} with partner config {json.dumps(safe_stringify(partner_config))}")
+                renew_token_res = await partner_config.oauthClient.renewAccessToken(session.access_mode == OFFLINE_ACCESS_MODE)
+                renew_token_res["access_token_validity"] = partner_config.oauthClient.token_expires_at
+                session.update_token(renew_token_res)
+                await SessionStorage.save_session(session)
+                logger.debug(f"Access token renewed for organization {organization_id} with response {renew_token_res}")
+
+        partner_client = PartnerClient(partner_config)
+        partner_client.setExtraHeaders({
+            'x-ext-lib-version': f"py/{__version__}"
+        })
+        return partner_client
 
     # Making API request to fetch extension details
     async def get_extension_details(self) -> dict:

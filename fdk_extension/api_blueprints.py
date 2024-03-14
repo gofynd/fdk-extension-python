@@ -3,9 +3,8 @@ from typing import Tuple, Optional, Union
 from sanic import Blueprint
 from sanic.blueprint_group import BlueprintGroup
 
-from .middleware.api_middleware import application_proxy_on_request
-from .middleware.api_middleware import platform_api_on_request
-from .middleware.session_middleware import session_middleware
+from .middleware.api_middleware import application_proxy_on_request, platform_api_on_request, partner_api_on_request
+from .middleware.session_middleware import session_middleware, partner_session_middleware
 
 
 class ClientBlueprintGroup(BlueprintGroup):
@@ -34,6 +33,13 @@ class ClientBlueprintGroup(BlueprintGroup):
 
                 if platform_api_on_request not in middleware_function:
                     bp.middleware(platform_api_on_request, "request", *args, **kwargs)
+
+            elif self.client_type == "partner":
+                if partner_session_middleware not in middleware_function:
+                    bp.middleware(partner_session_middleware, "request", *args, **kwargs)
+
+                if partner_api_on_request not in middleware_function:
+                    bp.middleware(partner_api_on_request, "request", *args, **kwargs)
 
             elif self.client_type == "application":
                 if application_proxy_on_request not in middleware_function:
