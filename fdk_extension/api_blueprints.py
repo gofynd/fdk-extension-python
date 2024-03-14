@@ -49,5 +49,6 @@ class ClientBlueprintGroup(BlueprintGroup):
 def setup_proxy_routes() -> Tuple[BlueprintGroup, BlueprintGroup]:
     platform_api_routes = ClientBlueprintGroup(client_type="platform")
     application_proxy_routes = ClientBlueprintGroup(client_type="application")
+    partner_proxy_routes = ClientBlueprintGroup(client_type="partner")
 
-    return platform_api_routes, application_proxy_routes
+    return platform_api_routes, application_proxy_routes, partner_proxy_routes

@@ -52,7 +52,7 @@ def setup_fdk(data: dict) -> FdkExtensionClient:
     asyncio.run(extension.initialize(data))
 
     fdk_route = setup_routes()
-    platform_api_routes, application_proxy_routes = setup_proxy_routes()
+    platform_api_routes, application_proxy_routes, partner_proxy_routes = setup_proxy_routes()
 
     return FdkExtensionClient(**{
         "fdk_handler": fdk_route,
@@ -60,6 +60,7 @@ def setup_fdk(data: dict) -> FdkExtensionClient:
         "platform_api_routes": platform_api_routes,
         "webhook_registry": extension.webhook_registry,
         "application_proxy_routes": application_proxy_routes,
+        "partner_proxy_routes": partner_proxy_routes,
         "get_platform_client": get_platform_client,
         "get_partner_client": get_partner_client,
         "get_application_client": get_application_client

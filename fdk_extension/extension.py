@@ -227,6 +227,7 @@ class FdkExtensionClient:
         self.platform_api_routes: ClientBlueprintGroup = client_data["platform_api_routes"]
         self.webhook_registry: WebhookRegistry = client_data["webhook_registry"]
         self.application_proxy_routes: ClientBlueprintGroup = client_data["application_proxy_routes"]
+        self.partner_proxy_routes: ClientBlueprintGroup = client_data["partner_proxy_routes"]
         self.get_platform_client: PlatformClient = client_data["get_platform_client"]
         self.get_application_client: ApplicationClient = client_data["get_application_client"]
 
