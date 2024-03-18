@@ -11,6 +11,7 @@ class Session:
     def __init__(self, session_id: str, is_new=True):
         self.session_id: str = session_id
         self.company_id: int = None
+        self.organization_id: int = None
         self.state: str = None
         self.scope: list = None
         self.expires: int = None
@@ -51,4 +52,4 @@ class Session:
             return str(uuid.uuid4())
         else:
             return hashlib.sha256(
-                "{}:{}".format(config_options["cluster"], config_options["company_id"]).encode()).hexdigest()
+                "{}:{}".format(config_options["cluster"], config_options["id"]).encode()).hexdigest()

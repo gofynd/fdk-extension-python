@@ -31,3 +31,11 @@ async def platform_api_on_request(request: Request) -> None:
                                                  request.conn_info.ctx.fdk_session)
     request.conn_info.ctx.platform_client = client
     request.conn_info.ctx.extension = extension
+
+async def partner_api_on_request(request: Request) -> None:
+    if not request.conn_info.ctx.fdk_session:
+        return json_response({"message": "unauthorized"}, status=401)
+    client = await extension.get_partner_client(request.conn_info.ctx.fdk_session.organization_id,
+                                                 request.conn_info.ctx.fdk_session)
+    request.conn_info.ctx.partner_client = client
+    request.conn_info.ctx.extension = extension
