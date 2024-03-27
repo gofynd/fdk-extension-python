@@ -13,6 +13,7 @@ from .exceptions import FdkWebhookHandlerNotFound
 from .exceptions import FdkWebhookProcessError
 from .exceptions import FdkWebhookRegistrationError
 from .utilities.logger import get_logger
+from .utilities.aiohttp_retry import retry_middleware
 
 from fdk_client.common.aiohttp_helper import AiohttpHelper
 from fdk_client.common.utils import get_headers_with_signature
@@ -344,7 +345,7 @@ class WebhookRegistry:
                 body=data,
                 exclude_headers=list(headers.keys())
             )
-            response = await AiohttpHelper().aiohttp_request(request_type="POST", url=url, data=data, headers=headers)
+            response = await retry_middleware(AiohttpHelper().aiohttp_request, request_type="POST", url=url, headers=headers, data=data)
             response_data: dict = response["json"]
             event_config["event_configs"] = response_data.get("event_configs")
             logger.debug(f"Webhook events config received: {ujson.dumps(response_data)}")
