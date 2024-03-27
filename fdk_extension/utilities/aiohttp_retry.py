@@ -1,6 +1,6 @@
 import asyncio
 
-async def retry_middleware(handler, request_type, url, headers, *args):
+async def retry_middleware(handler, *args, **kwargs):
     initial_delay = 30
     delay = initial_delay
     max_retries = float('inf')  # Retry forever
@@ -11,7 +11,7 @@ async def retry_middleware(handler, request_type, url, headers, *args):
         attempt += 1
         try:
             # Call the handler to execute the actual request
-            response = await handler(request_type, url, headers, *args)
+            response = await handler(*args, **kwargs)
             status_code = response.get('status_code')
             if status_code in allowed_codes:
                 if attempt <= 3:

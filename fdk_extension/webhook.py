@@ -345,7 +345,7 @@ class WebhookRegistry:
                 body=data,
                 exclude_headers=list(headers.keys())
             )
-            response = await retry_middleware(AiohttpHelper().aiohttp_request, request_type="POST", url=url, headers=headers, data=data)
+            response = await retry_middleware(AiohttpHelper().aiohttp_request, request_type="POST", url=url, data=data, headers=headers)
             response_data: dict = response["json"]
             event_config["event_configs"] = response_data.get("event_configs")
             logger.debug(f"Webhook events config received: {ujson.dumps(response_data)}")
