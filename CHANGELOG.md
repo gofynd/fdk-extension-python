@@ -5,6 +5,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
+## [v0.6.0]
+### Added
+- Added `partner_api_routes` to support calling partners server APIs through `PartnerClient`
+- Added Support to launch extension Admin inside partners panel
+
+---
 ## [v0.5.2] - 2022-12-31
 ### Added
 - Added support to auto install extensions feature. Now selected auto install extensions will be installed for company. It will generate access token for offline mode and register webhook subscribers for company it is getting auto installed.
