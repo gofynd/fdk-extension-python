@@ -74,8 +74,8 @@ async def test_route_handler(request):
     except Exception as e:
         return response.json({"error_message": str(e)}, 500)
         
-fdk_extension_client.platform_api_routes_bp.add_route(test_route_handler, "/test/routes")
-app.blueprint(fdk_extension_client.platform_api_routes_bp)
+fdk_extension_client.platform_api_routes.add_route(test_route_handler, "/test/routes")
+app.blueprint(fdk_extension_client.platform_api_routes)
 ```
 
 #### How to call platform apis in background tasks?
@@ -93,6 +93,26 @@ async def background_handler(request):
     except Exception as e:
         return response.json({"error_message": str(e)}, 500)
 ```
+
+#### How to call partner apis?
+
+To call partner api you need to have instance of `PartnerClient`. Instance holds methods for SDK classes. All routes registered under `partner_api_routes` blueprint will have `partner_client` under request context object which is instance of `PartnerClient`.
+
+> Here `partner_api_routes` has middleware attached which allows passing such request which are called after launching extension under any company.
+
+```python
+async def test_route_handler(request):
+    try:
+        partner_client = request.conn_info.ctx.partner_client
+        data = await partner_client.lead.getTickets()
+        return response.json({"data": data["json"]})
+    except Exception as e:
+        return response.json({"error_message": str(e)}, 500)
+        
+fdk_extension_client.partner_api_routes.add_route(test_route_handler, "/test/routes")
+app.blueprint(fdk_extension_client.partner_api_routes)
+```
+
 
 
 #### How to register for webhook events?
