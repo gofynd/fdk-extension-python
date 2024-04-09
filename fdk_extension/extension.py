@@ -8,6 +8,7 @@ from fdk_client.partner import PartnerClient, PartnerConfig
 from fdk_client.application.ApplicationClient import ApplicationClient
 from fdk_client.common.utils import get_headers_with_signature
 from fdk_client.common.aiohttp_helper import AiohttpHelper
+from .utilities.aiohttp_retry import retry_middleware
 
 from . import __version__
 from .constants import ONLINE_ACCESS_MODE, OFFLINE_ACCESS_MODE, FYND_CLUSTER
@@ -208,7 +209,7 @@ class Extension:
                 headers=headers,
                 exclude_headers=list(headers.keys())
             )
-            response = await AiohttpHelper().aiohttp_request(request_type="GET", url=url, headers=headers)
+            response = await retry_middleware(AiohttpHelper().aiohttp_request, request_type="GET", url=url, headers=headers)
             if response["status_code"] == 200:
                 return response["json"]
             else:
