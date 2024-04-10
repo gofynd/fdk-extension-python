@@ -42,7 +42,8 @@ async def get_application_client(application_id: str, application_token: str) ->
     application_config = ApplicationConfig({
         "applicationID": application_id,
         "applicationToken": application_token,
-        "domain": extension.cluster
+        "domain": extension.cluster,
+        "logLevel": 'debug' if extension.debug else None
     })
     application_client = ApplicationClient(application_config)
     return application_client
