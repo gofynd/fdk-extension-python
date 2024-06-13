@@ -17,7 +17,7 @@ from sanic import response
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from fdk_extension import setup_fdk
-from fdk_extension.storage.redis_storage import RedisStorage
+from fdk_extension.storage.redis_storage import RedisStorage #RedisStorage class is provided by default. If you have implemented custom storage class, use <YourCustomStorageClass> here.
 from examples.extension_handlers import extension_handler
 
 app = Sanic("test")
@@ -176,6 +176,46 @@ After webhook config is passed to setupFdk whenever extension is launched to any
 
 > Any update to webhook config will not automatically update subscriber data on Fynd Platform for a company until extension is opened atleast once after the update. 
 
-Other way to update webhook config manually for a company is to call `sync_events` function of webhookRegistery.  
+Other way to update webhook config manually for a company is to call `sync_events` function of webhookRegistery.
+
+#### How to create custom storage class?
+Custom storage classes expand data storage options beyond default choices like Redis and in-memory storage. You would required to create a custom storage class by extending the base storage class provided by fdk extension python library and implementing required methods as per your chosen database.
+
+```python
+from fdk_extension.storage.base_storage import BaseStorage
+
+class MyCustomStorage(BaseStorage):
+    def __init__(self, client: client, prefix_key: str=""):
+        super().__init__(prefix_key)
+        self.client = client
+
+    async def get(self, key):
+        return await self.client.get(self.prefix_key + key)
+    async def set(self, key, value):
+        #Implementation of a set method
+        pass
+
+    async def delete(self, key):
+        #Implementation of a delete method
+        pass
+
+    async def setex(self, key, ttl, value):
+        #Implementation of a setex method
+        pass
+
+    async def hget(self, key, hashKey):
+        #Implementation of a hget method
+        pass
+
+    async def hset(self, key, hashKey, value):
+        #Implementation of a hset method
+        pass
+
+    async def hgetall(self, key):
+        #Implementation of a hgetall method
+        pass
+
+    # All of the below methods need to be implemented as per your chosen databse
+```
 
 ---
