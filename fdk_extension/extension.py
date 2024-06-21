@@ -36,9 +36,13 @@ class Extension:
         self.cluster: str = FYND_CLUSTER
         self.webhook_registry: WebhookRegistry = None
         self.__is_initialized: bool = False
+        self.debug: bool = False
 
     async def initialize(self, data: dict) -> None:
         self.__is_initialized = False
+
+        if data.get('debug'):
+            self.debug = data.get('debug')
 
         self.storage = data["storage"]
 
@@ -120,7 +124,8 @@ class Extension:
             "domain": self.cluster,
             "apiKey": self.api_key,
             "apiSecret": self.api_secret,
-            "useAutoRenewTimer": False
+            "useAutoRenewTimer": False,
+            "logLevel": 'debug' if self.debug else None
         })
         return platform_config
 
@@ -161,7 +166,7 @@ class Extension:
             "apiKey": self.api_key,
             "apiSecret": self.api_secret,
             "useAutoRenewTimer": False,
-            "logLevel": "DEBUG"
+            "logLevel": 'debug' if self.debug else None
         })
         return partner_config
     
