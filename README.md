@@ -133,18 +133,41 @@ fdk_extension_client = setup_fdk({
         "notification_email": "test@abc.com", # required
         "subscribe_on_install": False, # optional. Default true
         "subscribed_saleschannel": "specific", #optional. Default all
-        "event_map": {  # required
-            'company/brand/create': {
-                "version": '1',
-                "handler": handleBrandCreate
+        "event_map": {  
+            "company/brand/create": {
+                "version": "1",
+                "handler": handleBrandCreate,
+                "provider": "rest"  # if not provided, Default is `rest`
             },
-            'company/location/update': {
-                "version": '1',
-                "handler": handleLocationUpdate
+            "company/location/update": {
+                "version": "1",
+                "handler": handleLocationUpdate,
             },
-            'application/coupon/create': {
-                "version": '1',
-                "handler": handleCouponCreate
+            "application/coupon/create": {
+                "version": "1",
+                "topic": "coupon_create_kafka_topic",
+                "provider": "kafka"
+            },
+            "company/brand/update": {
+                "version": "1",
+                "topic": "company-brand-create",
+                "provider": "pub_sub"
+            },
+            "extension/extension/install": {
+                "version": "1",
+                "queue": "extension-install",
+                "workflow_name": "extension",
+                "provider": "temporal"
+            },
+            "company/location/create": {
+                "version": "1",
+                "queue": "company-location-create",
+                "provider": "sqs"
+            },
+            "company/product-size/create": {
+                "version": "1",
+                "event_bridge_name": "company-product-size-create",
+                "provider": "event_bridge"
             }
         }
     }
