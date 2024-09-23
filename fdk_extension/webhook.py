@@ -55,8 +55,6 @@ class WebhookRegistry:
         self._config = config
         self._fdk_config = fdk_config
 
-        handler_config = {}
-
         allowed_providers = ['kafka', 'rest', 'pub_sub', 'temporal', 'sqs', 'event_bridge']
 
         for event_name, event_data in self._config['event_map'].items():
@@ -93,12 +91,12 @@ class WebhookRegistry:
 
         await self.get_event_config(all_event_map)
         event_config["events_map"] = self.__get_event_id_map(event_config.get("event_configs"))
-        self.__validate_events_map(handler_config)
+        self.__validate_events_map(all_event_map)
 
         if len(event_config["event_not_found"]):
             errors = []
             for key in event_config["event_not_found"]:
-                errors.append(ujson.dumps({"name": key, "version": event_config["event_not_found"]["key"]}))
+                errors.append(ujson.dumps({"name": key, "version": event_config["event_not_found"][key]}))
 
             raise FdkInvalidWebhookConfig(f"Webhooks events {', '.join(errors)} not found")
         
@@ -114,7 +112,7 @@ class WebhookRegistry:
         event_config["event_not_found"] = {}
 
         for key in handler_config.keys():
-            if not f"{key}/{handler_config[key]['version']}" in event_config["events_map"]:
+            if not f"{key}" in event_config["events_map"]:
                 event_config["event_not_found"][key] = handler_config[key]["version"]
 
 
@@ -235,6 +233,7 @@ class WebhookRegistry:
                     payload_event_map[event['provider']].update({
                         "webhook_url": self.__webhook_url,
                         "auth_meta": {
+                            "type": "hmac",
                             "secret": self._fdk_config['api_secret']
                         }
                     })
@@ -574,7 +573,7 @@ class WebhookRegistry:
             if callable(ext_handler):
                 logger.debug(f"Webhook event received for company: {body['company_id']}, "
                              f"application: {body.get('application_id', '')}, event name: {event_name} ")
-                await ext_handler(event_name, body, body["company_id"], body["application_id"])
+                await ext_handler(event_name, body, body.get("company_id", ''),body.get("application_id", ''))
             else:
                 raise FdkWebhookHandlerNotFound(f"Webhook handler not assigned: {event_name}")
         except Exception as e:
