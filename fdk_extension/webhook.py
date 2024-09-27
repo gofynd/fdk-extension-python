@@ -261,7 +261,7 @@ class WebhookRegistry:
             subscriber_config = {
                 "name": self._fdk_config.get("api_key"),
                 "association": {
-                    "company_id": platform_client.config.companyId,  # No change here
+                    "company_id": platform_client.config.companyId,
                     "application_id": [],
                     "criteria": self.__association_criteria([])
                 },
@@ -599,13 +599,6 @@ class WebhookRegistry:
                     "Content-Type": "application/json"
                 }
             
-            # headers = get_headers_with_signature(
-            #     domain=self._fdk_config.get('cluster'),
-            #     method="get",
-            #     url=path,
-            #     query_string="",
-            #     headers=headers
-            # )
             subscriber_config_response = await retry_middleware(AiohttpHelper().aiohttp_request, request_type="GET", url=url, headers=headers)
             print(subscriber_config_response["json"])
 
