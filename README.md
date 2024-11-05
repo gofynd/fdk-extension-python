@@ -133,6 +133,7 @@ fdk_extension_client = setup_fdk({
         "notification_email": "test@abc.com", # required
         "subscribe_on_install": False, # optional. Default true
         "subscribed_saleschannel": "specific", #optional. Default all
+        "marketplace": True, # to receive marketplace saleschannel events. Only allowed when subscribed_saleschannel is set to specific
         "event_map": {  
             "company/brand/create": {
                 "version": "1",
