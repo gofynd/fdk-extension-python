@@ -39,6 +39,9 @@ class WebhookRegistry:
 
         if not config.get("api_path") or config["api_path"][0] != "/":
             raise FdkInvalidWebhookConfig("Invalid or missing api_path")
+        
+        if config.get("marketplace") == True and config.get("subscribed_saleschannel") != "specific":
+            raise FdkInvalidWebhookConfig("marketplace is only allowed when subscribed_saleschannel is 'specific'")
 
         if not config.get("event_map"):
             raise FdkInvalidWebhookConfig("Invalid or missing event_map")
@@ -154,6 +157,21 @@ class WebhookRegistry:
             subscriber_config["webhook_url"] = self.__webhook_url
             updated = True
 
+        if config_criteria == ASSOCIATION_CRITERIA["SPECIFIC"]:
+            if subscriber_config.get('type') == 'marketplace' and not self._config['marketplace']:
+                logger.debug(f"Type updated from {subscriber_config.get('type')} to None")
+                subscriber_config['type'] = None
+                updated = True
+            elif (not subscriber_config.get('type') or subscriber_config.get('type') != "marketplace") and self._config['marketplace']:
+                logger.debug(f"Type updated from {subscriber_config.get('type')} to marketplace")
+                subscriber_config['type'] = "marketplace"
+                updated = True
+        else:
+            if subscriber_config.get('type') == 'marketplace':
+                logger.debug(f"Type updated from {subscriber_config.get('type')} to None")
+                subscriber_config['type'] = None
+                updated = True
+
         return updated
 
     async def sync_events(self, platform_client: PlatformClient, config: dict=None, enable_webhooks: bool=None):
@@ -164,8 +182,10 @@ class WebhookRegistry:
             raise FdkInvalidWebhookConfig('Webhook registry not initialized')
         
         logger.debug('Webhook sync events started')
+        
+        subscriber_config_list = await self.get_subscriber_config(platform_client)
 
-        subscriber_synced_for_all_providers = await self.sync_subscriber_config_for_all_providers(platform_client)
+        subscriber_synced_for_all_providers = await self.sync_subscriber_config_for_all_providers(platform_client, subscriber_config_list)
 
         if not subscriber_synced_for_all_providers:
             subscriber_config_list = await self.get_subscriber_config(platform_client)
@@ -190,8 +210,8 @@ class WebhookRegistry:
             
 
 
-    async def sync_subscriber_config_for_all_providers(self, platform_client):
-        payload = self.create_register_payload_data()
+    async def sync_subscriber_config_for_all_providers(self, platform_client, subscriber_config_list):
+        payload = self.create_register_payload_data(subscriber_config_list)
         token = await platform_client.config.oauthClient.getAccessToken()
         try:
             url = f"{self._fdk_config.get('cluster')}/service/platform/webhook/v3.0/company/{platform_client.config.companyId}/subscriber"
@@ -206,8 +226,7 @@ class WebhookRegistry:
                 raise err
             return False
         
-
-    def create_register_payload_data(self):
+    def create_register_payload_data(self, subscriber_config_list):
         payload = {
             "webhook_config": {
                 "notification_email": self._config['notification_email'],
@@ -221,14 +240,27 @@ class WebhookRegistry:
                 "event_map": {}
             }
         }
-        
-        payload_event_map = payload['webhook_config']['event_map']
-        
+
+        # Check the first subscriber's criteria if sales channel is 'specific'
+        config_keys = list(subscriber_config_list.keys())
+        if self._config['subscribed_saleschannel'] == 'specific' and config_keys:
+            first_config = subscriber_config_list[config_keys[0]]
+            if first_config.get("association", {}).get("criteria") == ASSOCIATION_CRITERIA["SPECIFIC"]:
+                payload["webhook_config"]["association"] = first_config["association"]
+
+        payload_event_map = payload["webhook_config"]["event_map"]
+
         for key, event in self._config['event_map'].items():
             if event['provider'] not in payload_event_map:
-                payload_event_map[event['provider']] = {
-                    "events": []
-                }
+                payload_event_map[event['provider']] = {}
+
+                if payload["webhook_config"].get("association", {}).get("criteria") == ASSOCIATION_CRITERIA["SPECIFIC"]:
+                    payload_event_map[event['provider']] = {
+                        "type": 'marketplace' if self._config['marketplace'] else None
+                    }
+
+                payload_event_map[event['provider']]["events"] = []
+                
                 if event['provider'] == 'rest':
                     payload_event_map[event['provider']].update({
                         "webhook_url": self.__webhook_url,
@@ -237,7 +269,7 @@ class WebhookRegistry:
                             "secret": self._fdk_config['api_secret']
                         }
                     })
-            
+
             event_data = {
                 "event_category": key.split('/')[0],
                 "event_name": key.split('/')[1],
@@ -248,8 +280,8 @@ class WebhookRegistry:
                 "workflow_name": event.get('workflow_name'),
                 "event_bridge_name": event.get('event_bridge_name')
             }
-            payload_event_map[event['provider']]['events'].append(event_data)
-        
+            payload_event_map[event['provider']]["events"].append(event_data)
+
         return payload
 
     async def sync_subscriber_config(self, subscriber_config, config_type, current_event_map_config, platform_client, enable_webhooks):
@@ -291,6 +323,7 @@ class WebhookRegistry:
             auth_meta = subscriber_config.get('auth_meta')
             event_configs = subscriber_config.get('event_configs', [])
             email_id = subscriber_config.get('email_id')
+            _type = subscriber_config.get('type')
 
             subscriber_config = {
                 'id': id,
@@ -300,10 +333,10 @@ class WebhookRegistry:
                 'association': association,
                 'status': status,
                 'auth_meta': auth_meta,
-                'email_id': email_id
+                'email_id': email_id,
+                'type': _type
             }
             subscriber_config['events'] = []
-
             existing_event = []
             for event in subscriber_config.get('event_configs', []):
                 eventToAdd = {}
@@ -456,8 +489,7 @@ class WebhookRegistry:
                         "Content-Type": "application/json"
                     }
                 response = await retry_middleware(AiohttpHelper().aiohttp_request, request_type="PUT", url=url, data=subscriber_config, headers=headers)
-
-                return response;
+                return response
 
             except Exception as err:
                 if subscriber_config['provider'] != "rest":
@@ -495,26 +527,29 @@ class WebhookRegistry:
             raise FdkWebhookRegistrationError("'subscribed_saleschannel' is not set to 'specific' in webhook config")
         
         try:
-            subscriber_config = await self.get_subscribe_config(platform_client=platform_client)
-            
-            if not subscriber_config:
-                raise FdkWebhookRegistrationError("Subscriber config not found")
+            subscriber_config_list = await self.get_subscriber_config(platform_client)
 
-            event_configs = subscriber_config["event_configs"]
-            for key in list(subscriber_config.keys()):
-                if key not in ["id", "name", "webhook_url", "association", "status", "auth_meta", "email_id"]:
-                    subscriber_config.pop(key)
+            if len(subscriber_config_list) == 0:
+              raise FdkWebhookRegistrationError("Subscriber config not found")
 
-            subscriber_config["event_id"] = [each_event["id"] for each_event in event_configs]
-            arr_application_id = subscriber_config["association"].get("application_id") or []
-            try:
-                arr_application_id.index(application_id)
-            except ValueError:
-                arr_application_id.append(application_id)
-                subscriber_config["association"]["application_id"] = arr_application_id
-                subscriber_config["association"]["criteria"] = self.__association_criteria(subscriber_config["association"]["application_id"])
-                await platform_client.webhook.updateSubscriberConfig(body=subscriber_config)
-                logger.debug(f"Webhook enabled for saleschannel: {application_id}")
+            for subscriber_config in subscriber_config_list.values():
+                event_configs = subscriber_config["event_configs"]
+                for key in list(subscriber_config.keys()):
+                    if key not in ["id", "name", "webhook_url", "association", "status", "auth_meta", "email_id"]:
+                        subscriber_config.pop(key)
+
+                subscriber_config["event_id"] = [each_event["id"] for each_event in event_configs]
+                arr_application_id = subscriber_config["association"].get("application_id") or []
+                try:
+                    arr_application_id.index(application_id)
+                except ValueError:
+                    arr_application_id.append(application_id)
+                    subscriber_config["association"]["application_id"] = arr_application_id
+                    subscriber_config["association"]["criteria"] = self.__association_criteria(subscriber_config["association"]["application_id"])
+                    if subscriber_config.get('association', {}).get('criteria') == ASSOCIATION_CRITERIA["SPECIFIC"]:
+                        subscriber_config['type'] = 'marketplace' if self._config['marketplace'] else None
+                    await platform_client.webhook.updateSubscriberConfig(body=subscriber_config)
+                    logger.debug(f"Webhook enabled for saleschannel: {application_id}")
 
         except Exception as e:
             raise FdkWebhookRegistrationError(f"Failed to add saleschannel webhook. Reason: {str(e)}")
@@ -527,23 +562,28 @@ class WebhookRegistry:
         if self._config.get("subscribed_saleschannel") != "specific":
             raise FdkWebhookRegistrationError("`subscribed_saleschannel` is not set to `specific` in webhook config")
         try:
-            subscriber_config = await self.get_subscribe_config(platform_client=platform_client)
-            if not subscriber_config:
-                raise FdkWebhookRegistrationError("Subscriber config not found")
+            subscriber_config_list = await self.get_subscriber_config(platform_client)
+            if len(subscriber_config_list) == 0:
+              raise FdkWebhookRegistrationError("Subscriber config not found")
 
-            event_configs = subscriber_config["event_configs"]
-            for key in list(subscriber_config.keys()):
-                if key not in ["id", "name", "webhook_url", "association", "status", "auth_meta", "email_id"]:
-                    subscriber_config.pop(key)
+            for subscriber_config in subscriber_config_list.values():
+                event_configs = subscriber_config["event_configs"]
+                for key in list(subscriber_config.keys()):
+                    if key not in ["id", "name", "webhook_url", "association", "status", "auth_meta", "email_id"]:
+                        subscriber_config.pop(key)
 
-            subscriber_config["event_id"] = [each_event["id"] for each_event in event_configs]
-            arr_application_id = subscriber_config["association"].get("application_id") or []
-            if application_id in arr_application_id:
-                arr_application_id.remove(application_id)
-                subscriber_config["association"]["criteria"] = self.__association_criteria(subscriber_config["association"].get("application_id", []))
-                subscriber_config["association"]["application_id"] = arr_application_id
-                await platform_client.webhook.updateSubscriberConfig(body=subscriber_config)
-                logger.debug(f"Webhook disabled for saleschannel: {application_id}")
+                subscriber_config["event_id"] = [each_event["id"] for each_event in event_configs]
+                arr_application_id = subscriber_config["association"].get("application_id") or []
+                if application_id in arr_application_id:
+                    arr_application_id.remove(application_id)
+                    subscriber_config["association"]["criteria"] = self.__association_criteria(subscriber_config["association"].get("application_id", []))
+                    subscriber_config["association"]["application_id"] = arr_application_id
+                    if subscriber_config.get('association', {}).get('criteria') == ASSOCIATION_CRITERIA["SPECIFIC"]:
+                        subscriber_config['type'] = 'marketplace' if self._config['marketplace'] else None
+                    else:
+                        subscriber_config['type'] = None
+                    await platform_client.webhook.updateSubscriberConfig(body=subscriber_config)
+                    logger.debug(f"Webhook disabled for saleschannel: {application_id}")
 
         except Exception as e:
             raise FdkWebhookRegistrationError(f"Failed to disabled saleschannel webhook. Reason: {str(e)}")
@@ -578,14 +618,6 @@ class WebhookRegistry:
                 raise FdkWebhookHandlerNotFound(f"Webhook handler not assigned: {event_name}")
         except Exception as e:
             raise FdkWebhookProcessError(str(e))
-
-
-    async def get_subscribe_config(self, platform_client: PlatformClient) -> dict:
-        try:
-            subscriber_config = await platform_client.webhook.getSubscribersByExtensionId(extension_id=self._fdk_config["api_key"])
-            return subscriber_config["json"]["items"][0] if subscriber_config["json"]["items"] else None
-        except Exception as e:
-            raise FdkInvalidWebhookConfig(f"Error while fetching webhook subscriber configuration, Reason: {str(e)}")
         
     async def get_subscriber_config(self, platform_client):
         token = await platform_client.config.oauthClient.getAccessToken()
