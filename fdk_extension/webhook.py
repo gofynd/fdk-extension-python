@@ -14,6 +14,7 @@ from .exceptions import FdkWebhookProcessError
 from .exceptions import FdkWebhookRegistrationError
 from .utilities.logger import get_logger
 from .utilities.aiohttp_retry import retry_middleware
+from deepdiff import DeepDiff 
 
 from fdk_client.common.aiohttp_helper import AiohttpHelper
 from fdk_client.common.utils import get_headers_with_signature
@@ -84,6 +85,12 @@ class WebhookRegistry:
                 raise FdkInvalidWebhookConfig(f'Missing workflow_name in webhook event {event_name}')
             elif event_data['provider'] == 'event_bridge' and 'event_bridge_name' not in event_data:
                 raise FdkInvalidWebhookConfig(f'Missing event_bridge_name in webhook event {event_name}')
+            
+            if "filters" in event_data and not isinstance(event_data["filters"], dict):
+                raise FdkInvalidWebhookConfig(f"filters should be an object in webhook event {event_name}")
+            
+            if "reducer" in event_data and not isinstance(event_data["reducer"], dict):
+                raise FdkInvalidWebhookConfig(f"reducer should be an object in webhook event {event_name}")
             
             self._event_map[event_data['provider']][f"{event_name}/v{event_data['version']}"] = event_data
 
@@ -278,7 +285,9 @@ class WebhookRegistry:
                 "topic": event.get('topic'),
                 "queue": event.get('queue'),
                 "workflow_name": event.get('workflow_name'),
-                "event_bridge_name": event.get('event_bridge_name')
+                "event_bridge_name": event.get('event_bridge_name'),
+                "filters": event.get('filters'),
+                "reducer": event.get('reducer')
             }
             payload_event_map[event['provider']]["events"].append(event_data)
 
@@ -349,7 +358,9 @@ class WebhookRegistry:
                         'topic': broadcaster_config.get('topic', ''),
                         'queue': broadcaster_config.get('queue', ''),
                         'event_bridge_name': broadcaster_config.get('event_bridge_name', ''),
-                        'workflow_name': broadcaster_config.get('workflow_name', '')
+                        'workflow_name': broadcaster_config.get('workflow_name', ''),
+                        'filters': broadcaster_config.get('filters', {}),
+                        'reducer': broadcaster_config.get('reducer', {}),
                     })
                 
                 existing_events.append(eventToAdd)
@@ -379,7 +390,9 @@ class WebhookRegistry:
                     'topic': current_event_map_config.get(event_name, {}).get('topic'),
                     'queue': current_event_map_config.get(event_name, {}).get('queue'),
                     'event_bridge_name': current_event_map_config.get(event_name, {}).get('event_bridge_name'),
-                    'workflow_name': current_event_map_config.get(event_name, {}).get('workflow_name')
+                    'workflow_name': current_event_map_config.get(event_name, {}).get('workflow_name'),
+                    'filters': current_event_map_config.get(event_name, {}).get('filters'),
+                    'reducer': current_event_map_config.get(event_name, {}).get('reducer'),
                 }
                 subscriber_config['events'].append(event)
 
@@ -413,12 +426,21 @@ class WebhookRegistry:
                     'event_bridge': ['event_bridge_name']
                 }
 
-                if config_type != 'rest' and not config_updated:
+                common_keys = ['filters', 'reducer']
+
+                if not config_updated:
                     for event in subscriber_config['events']:
                         existing_event = next((e for e in existing_events if e['slug'] == event['slug']), None)
                         if existing_event:
+                            # Compare config-related keys
                             for key in config_type_keys_to_check.get(config_type, []):
                                 if event.get(key) != existing_event.get(key):
+                                    config_updated = True
+                                    break
+
+                            # Compare common keys
+                            for key in common_keys:
+                                if DeepDiff(event.get(key), existing_event.get(key)):
                                     config_updated = True
                                     break
 
