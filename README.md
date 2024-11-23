@@ -94,6 +94,22 @@ async def background_handler(request):
         return response.json({"error_message": str(e)}, 500)
 ```
 
+#### How to call partner apis in background tasks?
+
+Background tasks running under some consumer or webhook or under any queue can get partner client via method `get_partner_client`. It will return instance of `PartnerClient` as well. 
+
+> Here FdkClient `access_mode` should be **offline**. Cause such client can only access PlatformClient in background task. 
+
+```python
+async def background_handler(request):
+    try:
+        organization_id = request.args.get("organizationId")
+        client = await fdk_extension_client.get_partner_client(organization_id)
+        return response.json({"success": True})
+    except Exception as e:
+        return response.json({"error_message": str(e)}, 500)
+```
+
 #### How to call partner apis?
 
 To call partner api you need to have instance of `PartnerClient`. Instance holds methods for SDK classes. All routes registered under `partner_api_routes` blueprint will have `partner_client` under request context object which is instance of `PartnerClient`.
