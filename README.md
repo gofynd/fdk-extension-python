@@ -195,6 +195,34 @@ app.add_route(webhook_handler, "/webhook", methods=["POST"])
 > Setting `subscribed_saleschannel` as "specific" means, you will have to manually subscribe saleschannel level event for individual saleschannel. Default value here is "all" and event will be subscribed for all sales channels. For enabling events manually use function `enable_sales_channel_webhook`. To disable receiving events for a saleschannel use function `disable_sales_channel_webhook`. 
 
 
+#### Filters and reducers in webhook events
+
+A filter and reducer can be provided to refine the data delivered for each subscribed event. The Filter functionality allows selective delivery of data by specifying conditions based on JSONPath queries and logical operators. Reducer allow customization of the payload structure by specifying only the fields needed by the subscriber. The reducer extracts fields from the event’s data and restructures them as needed.
+
+```python
+"webhook_config": {
+        "api_path": "/api/v1/webhooks", 
+        "notification_email": "test@abc.com",
+        "subscribe_on_install": False,
+        "subscribed_saleschannel": "specific", 
+        "marketplace": True,
+        "event_map": {
+            'company/brand/update': {
+                "version": '1',
+                "handler": handle_webhook,
+                "filters": {
+                    "query": "$.payload.brand.uid",
+                    "condition": "(uid) => uid === 130"
+                },
+                "reducer": {
+                    "brand_name": "$.payload.brand.name",
+                    "logo_link": "$.payload.brand.logo"
+                }
+            }
+        }
+}
+```
+
 ##### How webhook registery subscribes to webhooks on Fynd Platform?
 After webhook config is passed to setupFdk whenever extension is launched to any of companies where extension is installed or to be installed, webhook config data is used to create webhook subscriber on Fynd Platform for that company. 
 
