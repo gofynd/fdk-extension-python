@@ -352,15 +352,16 @@ class WebhookRegistry:
                 eventToAdd["slug"] = f"{event.get('event_category')}/{event.get('event_name')}/{event.get('event_type')}/v{event.get('version')}"
 
                 if(event.get('subscriber_event_mapping') and event.get('subscriber_event_mapping').get('broadcaster_config')):
-                    broadcaster_config = event['subscriber_event_mapping']['broadcaster_config']
+                    subscriber_event_mapping = event['subscriber_event_mapping']
+                    broadcaster_config = subscriber_event_mapping['broadcaster_config']
 
                     eventToAdd.update({
                         'topic': broadcaster_config.get('topic', ''),
                         'queue': broadcaster_config.get('queue', ''),
                         'event_bridge_name': broadcaster_config.get('event_bridge_name', ''),
                         'workflow_name': broadcaster_config.get('workflow_name', ''),
-                        'filters': broadcaster_config.get('filters', {}),
-                        'reducer': broadcaster_config.get('reducer', {}),
+                        'filters': subscriber_event_mapping.get('filters', {}),
+                        'reducer': subscriber_event_mapping.get('reducer', {}),
                     })
                 
                 existing_events.append(eventToAdd)
@@ -423,7 +424,8 @@ class WebhookRegistry:
                     'pub_sub': ['topic'],
                     'temporal': ['queue', 'workflow_name'],
                     'sqs': ['queue'],
-                    'event_bridge': ['event_bridge_name']
+                    'event_bridge': ['event_bridge_name'],
+                    'rest': []
                 }
 
                 common_keys = ['filters', 'reducer']
