@@ -1,3 +1,4 @@
 sanic>=22.9.0
 aioredis>=2.0.0
 structlog>=20.1.0
+deepdiff>=8.0.1
