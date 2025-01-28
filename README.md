@@ -211,12 +211,12 @@ A filter and reducer can be provided to refine the data delivered for each subsc
                 "version": '1',
                 "handler": handle_webhook,
                 "filters": {
-                    "query": "$.payload.brand.uid",
+                    "query": "$.brand.uid",
                     "condition": "(uid) => uid === 130"
                 },
                 "reducer": {
-                    "brand_name": "$.payload.brand.name",
-                    "logo_link": "$.payload.brand.logo"
+                    "brand_name": "$.brand.name",
+                    "logo_link": "$.brand.logo"
                 }
             }
         }
