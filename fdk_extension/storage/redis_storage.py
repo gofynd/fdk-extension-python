@@ -1,5 +1,5 @@
 from .base_storage import BaseStorage
-from utilities.logger import get_logger
+from ..utilities.logger import get_logger
 from typing import Union
 
 from aioredis.client import Redis

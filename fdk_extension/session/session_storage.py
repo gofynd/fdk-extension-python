@@ -4,7 +4,7 @@ import json
 
 from ..extension import extension
 from .session import Session
-from utilities.logger import get_logger
+from ..utilities.logger import get_logger
 
 logger = get_logger()
 class SessionStorage:
