@@ -1,6 +1,7 @@
 """Request handlers."""
 from datetime import datetime, timedelta
 import uuid
+import json
 
 from sanic.blueprints import Blueprint
 from sanic.blueprint_group import BlueprintGroup
@@ -14,10 +15,10 @@ from .extension import extension
 from .middleware.session_middleware import session_middleware
 from .session.session import Session
 from .session.session_storage import SessionStorage
-from .utilities import logger
+from .utilities.logger import get_logger, safe_stringify
 from .utilities.utility import get_company_cookie_name
 
-logger = logger.get_logger()
+logger = get_logger()
 
 
 async def install_handler(request: Request):
@@ -84,9 +85,10 @@ async def auth_handler(request: Request):
         company_id = request.conn_info.ctx.fdk_session.company_id
 
         platform_config = extension.get_platform_config(company_id)
+        logger.debug(f"fetching online access token for company {company_id} with platform config {json.dumps(safe_stringify(platform_config))}")
         await platform_config.oauthClient.verifyCallback(request.args)
-
         token: dict = platform_config.oauthClient.raw_token
+        logger.debug(f"SUCCESS: fetching online access token for company {company_id} with platform config {json.dumps(safe_stringify(platform_config.oauthClient.raw_token))}")
         session_expires = datetime.now() + timedelta(seconds=token["expires_in"])
 
         request.conn_info.ctx.fdk_session.expires = session_expires
@@ -108,10 +110,11 @@ async def auth_handler(request: Request):
                 session = Session(session_id=session_id)
             
             platform_config = extension.get_platform_config(company_id)
+            logger.debug(f"Generating offline access token for company {company_id} with platform config {json.dumps(safe_stringify(platform_config))}")
             offline_token_response = await platform_config.oauthClient.getOfflineAccessToken(
                 extension.scopes, request.args.get("code")
                 )
-            
+            logger.debug(f"SUCCESS: Generating offline access token for company {company_id} with platform config {json.dumps(safe_stringify(offline_token_response))}")
             session.company_id = company_id
             session.scope = extension.scopes
             session.state = request.conn_info.ctx.fdk_session.state
@@ -119,8 +122,9 @@ async def auth_handler(request: Request):
             offline_token_response["access_token_validity"] = platform_config.oauthClient.token_expires_at
             offline_token_response["access_mode"] = OFFLINE_ACCESS_MODE
             session.update_token(offline_token_response)
-
+            logger.debug(f"Session generated for company {company_id}")
             await SessionStorage.save_session(session=session)
+            logger.debug(f"After session save for company {company_id}")
 
         request.conn_info.ctx.extension = extension
 

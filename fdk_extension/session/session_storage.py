@@ -4,7 +4,9 @@ import json
 
 from ..extension import extension
 from .session import Session
+from utilities.logger import get_logger
 
+logger = get_logger()
 class SessionStorage:
 
     @staticmethod
@@ -19,6 +21,7 @@ class SessionStorage:
     @staticmethod
     async def get_session(session_id: Text):
         session: Text = await extension.storage.get(session_id)
+        logger.debug(f"middleware.get_session: {session_id} = {session}")
         if session:
             session: Dict = json.loads(session)
             session: Session = Session.clone_session(session)
