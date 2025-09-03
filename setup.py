@@ -55,7 +55,7 @@ setup(
         "test": test_requires
     },
     keywords=["FDK extension python", "Extension", "FDK"],
-    python_requires=">=3.7, <3.11",
+    python_requires=">=3.7, <3.12",
     classifiers=[
         "Development Status :: 4 - Beta",
         "Topic :: Software Development :: Libraries",
@@ -69,6 +69,7 @@ setup(
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3 :: Only"
     ],
 )
