@@ -1,7 +1,7 @@
 from .base_storage import BaseStorage
 from typing import Union
 
-from aioredis.client import Redis
+from redis.asyncio import Redis
 
 
 class RedisStorage(BaseStorage):

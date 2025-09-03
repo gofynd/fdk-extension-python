@@ -1,7 +1,7 @@
 import os
 import sys
 
-import aioredis
+import redis.asyncio as aioredis
 from sanic import Sanic, Blueprint, request, response
 
 import logging

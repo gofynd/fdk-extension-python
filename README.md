@@ -10,7 +10,7 @@ Initial Setup
 import os
 import sys
 
-import aioredis
+import redis.asyncio as aioredis
 from sanic import Sanic, Blueprint
 from sanic import response
 
