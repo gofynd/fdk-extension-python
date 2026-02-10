@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import re
-import pathlib, pkg_resources
+import pathlib
 from setuptools import find_packages, setup
 
 VERSION_FILE = "fdk_extension/__init__.py"
@@ -14,20 +14,26 @@ if match:
 else:
     raise RuntimeError(f"Unable to find version string in {VERSION_FILE}.")
 
+def _read_requirements(path):
+    try:
+        lines = pathlib.Path(path).read_text().splitlines()
+    except Exception as exc:
+        raise RuntimeError(f"Got error while reading {path}") from exc
+
+    requirements = []
+    for line in lines:
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        requirements.append(stripped)
+    return requirements
+
 # Reading requirements.txt file
-try:
-    with pathlib.Path("requirements/requirements.txt").open() as requirements:
-        install_requires = [str(requirement) for requirement in pkg_resources.parse_requirements(requirements)]
-except:
-    raise RuntimeError("Got error while reading requirements.txt file")
+install_requires = _read_requirements("requirements/requirements.txt")
 
 
 # Reading requirements for test
-try:
-    with pathlib.Path("requirements/requirements_test.txt").open() as test_requirements:
-        test_requires = [str(requirement) for requirement in pkg_resources.parse_requirements(test_requirements)]
-except:
-    raise RuntimeError("Got Error while reading requirements_test.txt.")
+test_requires = _read_requirements("requirements/requirements_test.txt")
 
     
 
